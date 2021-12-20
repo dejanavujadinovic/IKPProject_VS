@@ -35,7 +35,7 @@ void SendFunction(SOCKET accSocket, char dataBuffer[]);
 void DodajIgraca(char username[], int id);
 void ispisiListu();
 
-char dataaBuffer[BUFFER_SIZE];
+
 // TCP server that use blocking sockets
 int main() 
 {
@@ -115,11 +115,16 @@ int main()
 	timeVal.tv_sec = 0;
 	timeVal.tv_usec = 0;
 	
+	int idPocetnog = -1;
 	int lastIndex = 0;
+	bool novaKonekcija = false;
+
     do
     {
 		FD_ZERO(&readfds);
-		FD_SET(listenSocket, &readfds);
+
+		if(lastIndex!=MAX_CLIENTS)
+			FD_SET(listenSocket, &readfds);
 
 		for(int i=0; i<lastIndex; i++)
 			FD_SET(acceptedSocket[i], &readfds);
@@ -134,62 +139,81 @@ int main()
 			return 1;
 		}
 		else if (selectResult == 0)
+		{
 			continue;
-
-		else if (FD_ISSET(listenSocket, &readfds))
-		{
-			// Struct for information about connected client
-			sockaddr_in clientAddr;
-
-			int clientAddrSize = sizeof(struct sockaddr_in);
-
-			// Accept new connections from clients 
-			acceptedSocket[lastIndex] = accept(listenSocket, (struct sockaddr *)&clientAddr, &clientAddrSize);
-
-			// Check if accepted socket is valid 
-			if (acceptedSocket[lastIndex] == INVALID_SOCKET)
-			{
-				printf("accept failed with error: %d\n", WSAGetLastError());
-				closesocket(listenSocket);
-				WSACleanup();
-				return 1;
-			}
-
-			if (ioctlsocket(acceptedSocket[lastIndex], FIONBIO, &mode) != 0)
-			{
-				printf("ioctlsocket failed with error.");
-				continue;
-			}
-			lastIndex++;
-
-			memset(dataBuffer, 0, BUFFER_SIZE);
-			sprintf_s(dataBuffer, "Unesite vas username: ");
-			SendFunction(acceptedSocket[lastIndex-1], dataBuffer);
-			
-			Sleep(3000);
-			memset(dataBuffer, 0, BUFFER_SIZE);
-			RecvFunction(acceptedSocket[lastIndex - 1], lastIndex - 1, dataBuffer);
-
-			DodajIgraca(dataBuffer, lastIndex - 1);
-			ispisiListu();
 		}
-		else
+		else 
 		{
-
-			/*for (int i = 0; i < lastIndex; i++)
+			if (FD_ISSET(listenSocket, &readfds))
 			{
+				// Struct for information about connected client
+				sockaddr_in clientAddr;
+
+				int clientAddrSize = sizeof(struct sockaddr_in);
+
+				// Accept new connections from clients 
+				acceptedSocket[lastIndex] = accept(listenSocket, (struct sockaddr*)&clientAddr, &clientAddrSize);
+
+				// Check if accepted socket is valid 
+				if (acceptedSocket[lastIndex] == INVALID_SOCKET)
+				{
+					printf("accept failed with error: %d\n", WSAGetLastError());
+					closesocket(listenSocket);
+					WSACleanup();
+					return 1;
+				}
+
+				if (ioctlsocket(acceptedSocket[lastIndex], FIONBIO, &mode) != 0)
+				{
+					printf("ioctlsocket failed with error.");
+					continue;
+				}
+				lastIndex++;
+
+				novaKonekcija = true;
+
 				memset(dataBuffer, 0, BUFFER_SIZE);
-				sprintf_s(dataBuffer, "Unesite broj: ");
-				SendFunction(acceptedSocket[i], dataBuffer);
-			}*/
+				sprintf_s(dataBuffer, "Unesite vas username (dozvoljena su samo mala slova): ");
+				SendFunction(acceptedSocket[lastIndex - 1], dataBuffer);
+			}
 			for (int i = 0; i < lastIndex; i++)
 			{
-				if (FD_ISSET(acceptedSocket[i], &readfds))				
-					RecvFunction(acceptedSocket[i], i, dataBuffer);		
+				if (FD_ISSET(acceptedSocket[i], &readfds))
+				{
+					if (novaKonekcija)
+					{
+						memset(dataBuffer, 0, BUFFER_SIZE);
+						RecvFunction(acceptedSocket[i], i, dataBuffer);
+						if (dataBuffer[strlen(dataBuffer) - 1] == 'D' && dataBuffer[strlen(dataBuffer) - 2] == 'A')
+						{
+							idPocetnog = i;
+							printf("Pocetni igrac: %d", idPocetnog + 1);
+						}
+
+						DodajIgraca(dataBuffer, i);
+						ispisiListu();
+
+						if (i == idPocetnog)
+						{
+							//printf("ovdjeee saam");
+							RecvFunction(acceptedSocket[i], i, dataBuffer);
+						}
+						novaKonekcija = false;
+					}
+					else
+					{
+						if (i == idPocetnog)
+						{
+							RecvFunction(acceptedSocket[i], i, dataBuffer);
+						}
+						else
+						{
+							RecvFunction(acceptedSocket[i], i, dataBuffer);
+						}
+					}
+				}
 			}
 		}
-
-
     } while (true);
 
 	closesocket(listenSocket);
@@ -288,7 +312,7 @@ void ispisiListu()
 	{
 		while (pomocni != NULL)
 		{
-			printf(" %d", pomocni->id);
+			printf(" %d", pomocni->id + 1);
 			printf(" %s", pomocni->username);
 			pomocni = pomocni->sledeci;
 			printf("\n");

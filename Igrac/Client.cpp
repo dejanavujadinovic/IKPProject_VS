@@ -74,27 +74,27 @@ int main()
 	memset(dataBuffer, 0, BUFFER_SIZE);
 	RecvFunction(connectSocket);
 
-	//igrac salje interval serveru
-	/*gets_s(dataBuffer, BUFFER_SIZE);
+	gets_s(dataBuffer, BUFFER_SIZE);
+	strcat_s(dataBuffer, "AD");
 	SendFunction(connectSocket, dataBuffer);
 
-	int broj = 0;
-	gets_s((char*)broj, sizeof(broj));
+	int broj;
+	printf("Unesite broj za pocetak igre: ");
+	scanf_s("%d", &broj);
 
-	int minInterval = (int)broj - 10;
-	int maxInterval = (int)broj + 10;
+	int minInterval = broj - 10;
+	int maxInterval = broj + 10;
 
 	memset(dataBuffer, 0, BUFFER_SIZE);
-	sprintf_s(dataBuffer, "Interval: [%d - %d]", (char)minInterval, (char)maxInterval);
+	sprintf_s(dataBuffer, "Interval: [%d - %d]", minInterval, maxInterval);
 	SendFunction(connectSocket, dataBuffer);
-	*/
+	
 	do
 	{
 		memset(dataBuffer, 0, BUFFER_SIZE);
 		// Read string from user into outgoing buffer
-		//printf("Enter message to send: ");
 		gets_s(dataBuffer, BUFFER_SIZE);
-		SendFunction(connectSocket, dataBuffer);
+		//SendFunction(connectSocket, dataBuffer);
 
 		//memset(dataBuffer, 0, BUFFER_SIZE);
 		//RecvFunction(connectSocket);
