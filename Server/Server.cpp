@@ -37,96 +37,96 @@ void ispisiListu();
 
 
 // TCP server that use blocking sockets
-int main() 
+int main()
 {
-    // Socket used for listening for new clients 
-    SOCKET listenSocket = INVALID_SOCKET;
+	// Socket used for listening for new clients 
+	SOCKET listenSocket = INVALID_SOCKET;
 
-    // Socket used for communication with client
-    SOCKET acceptedSocket[MAX_CLIENTS];
+	// Socket used for communication with client
+	SOCKET acceptedSocket[MAX_CLIENTS];
 
-    // Variable used to store function return value
-    int iResult;
+	// Variable used to store function return value
+	int iResult;
 
-    // Buffer used for storing incoming data
-    char dataBuffer[BUFFER_SIZE];
-    
+	// Buffer used for storing incoming data
+	char dataBuffer[BUFFER_SIZE];
+
 	// WSADATA data structure that is to receive details of the Windows Sockets implementation
-    WSADATA wsaData;
+	WSADATA wsaData;
 
 	// Initialize windows sockets library for this process
-    if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
-    {
-        printf("WSAStartup failed with error: %d\n", WSAGetLastError());
-        return 1;
-    }
-   
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+		printf("WSAStartup failed with error: %d\n", WSAGetLastError());
+		return 1;
+	}
+
 
 	// Initialize serverAddress structure used by bind
 	sockaddr_in serverAddress;
-    memset((char*)&serverAddress,0,sizeof(serverAddress));
-    serverAddress.sin_family = AF_INET;				// IPv4 address family
-    serverAddress.sin_addr.s_addr = INADDR_ANY;		// Use all available addresses
-    serverAddress.sin_port = htons(SERVER_PORT);	// Use specific port
+	memset((char*)&serverAddress, 0, sizeof(serverAddress));
+	serverAddress.sin_family = AF_INET;				// IPv4 address family
+	serverAddress.sin_addr.s_addr = INADDR_ANY;		// Use all available addresses
+	serverAddress.sin_port = htons(SERVER_PORT);	// Use specific port
 
 	memset(acceptedSocket, 0, sizeof(SOCKET));
 
-    // Create a SOCKET for connecting to server
-    listenSocket = socket(AF_INET,      // IPv4 address family
-                          SOCK_STREAM,  // Stream socket
-                          IPPROTO_TCP); // TCP protocol
+	// Create a SOCKET for connecting to server
+	listenSocket = socket(AF_INET,      // IPv4 address family
+		SOCK_STREAM,  // Stream socket
+		IPPROTO_TCP); // TCP protocol
 
-	// Check if socket is successfully created
-    if (listenSocket == INVALID_SOCKET)
-    {
-        printf("socket failed with error: %ld\n", WSAGetLastError());
-        WSACleanup();
-        return 1;
-    }
+// Check if socket is successfully created
+	if (listenSocket == INVALID_SOCKET)
+	{
+		printf("socket failed with error: %ld\n", WSAGetLastError());
+		WSACleanup();
+		return 1;
+	}
 
-    // Setup the TCP listening socket - bind port number and local address to socket
-	iResult = bind(listenSocket,(struct sockaddr*) &serverAddress,sizeof(serverAddress));
+	// Setup the TCP listening socket - bind port number and local address to socket
+	iResult = bind(listenSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
 
 	// Check if socket is successfully binded to address and port from sockaddr_in structure
-    if (iResult == SOCKET_ERROR)
-    {
-        printf("bind failed with error: %d\n", WSAGetLastError());
-        closesocket(listenSocket);
-        WSACleanup();
-        return 1;
-    }
+	if (iResult == SOCKET_ERROR)
+	{
+		printf("bind failed with error: %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
 
 	unsigned long mode = 1;
 	if (ioctlsocket(listenSocket, FIONBIO, &mode) != 0)
 		printf("ioctlsocket failed with error: \n");
 
-    // Set listenSocket in listening mode
-    iResult = listen(listenSocket, SOMAXCONN);
-    if (iResult == SOCKET_ERROR)
-    {
-        printf("listen failed with error: %d\n", WSAGetLastError());
-        closesocket(listenSocket);
-        WSACleanup();
-        return 1;
-    }
+	// Set listenSocket in listening mode
+	iResult = listen(listenSocket, SOMAXCONN);
+	if (iResult == SOCKET_ERROR)
+	{
+		printf("listen failed with error: %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
 
 	fd_set readfds;
 	timeval timeVal;
 	timeVal.tv_sec = 0;
 	timeVal.tv_usec = 0;
-	
+
 	int idPocetnog = -1;
 	int lastIndex = 0;
 	bool novaKonekcija = false;
 
-    do
-    {
+	do
+	{
 		FD_ZERO(&readfds);
 
-		if(lastIndex!=MAX_CLIENTS)
+		if (lastIndex != MAX_CLIENTS)
 			FD_SET(listenSocket, &readfds);
 
-		for(int i=0; i<lastIndex; i++)
+		for (int i = 0; i < lastIndex; i++)
 			FD_SET(acceptedSocket[i], &readfds);
 
 		int selectResult = select(0, &readfds, NULL, NULL, &timeVal);
@@ -142,10 +142,12 @@ int main()
 		{
 			continue;
 		}
-		else 
+		else
 		{
+
 			if (FD_ISSET(listenSocket, &readfds))
 			{
+
 				// Struct for information about connected client
 				sockaddr_in clientAddr;
 
@@ -176,45 +178,48 @@ int main()
 				sprintf_s(dataBuffer, "Unesite vas username (dozvoljena su samo mala slova): ");
 				SendFunction(acceptedSocket[lastIndex - 1], dataBuffer);
 			}
-			for (int i = 0; i < lastIndex; i++)
+
+		}
+		for (int i = 0; i < lastIndex; i++)
+		{
+			if (FD_ISSET(acceptedSocket[i], &readfds))
 			{
-				if (FD_ISSET(acceptedSocket[i], &readfds))
+				if (novaKonekcija)
 				{
-					if (novaKonekcija)
+					memset(dataBuffer, 0, BUFFER_SIZE);
+					RecvFunction(acceptedSocket[i], i, dataBuffer);
+					if (dataBuffer[strlen(dataBuffer) - 1] == 'D' && dataBuffer[strlen(dataBuffer) - 2] == 'A')
 					{
-						memset(dataBuffer, 0, BUFFER_SIZE);
+						idPocetnog = i;
+						printf("Pocetni igrac: %d", idPocetnog + 1);
+					}
+
+					DodajIgraca(dataBuffer, i);
+					ispisiListu();
+
+					if (i == idPocetnog)
+					{
+						//printf("ovdjeee saam");
 						RecvFunction(acceptedSocket[i], i, dataBuffer);
-						if (dataBuffer[strlen(dataBuffer) - 1] == 'D' && dataBuffer[strlen(dataBuffer) - 2] == 'A')
-						{
-							idPocetnog = i;
-							printf("Pocetni igrac: %d", idPocetnog + 1);
-						}
-
-						DodajIgraca(dataBuffer, i);
-						ispisiListu();
-
-						if (i == idPocetnog)
-						{
-							//printf("ovdjeee saam");
-							RecvFunction(acceptedSocket[i], i, dataBuffer);
-						}
-						novaKonekcija = false;
+					}
+					novaKonekcija = false;
+				}
+				else
+				{
+					if (i == idPocetnog)
+					{
+						RecvFunction(acceptedSocket[i], i, dataBuffer);
 					}
 					else
 					{
-						if (i == idPocetnog)
-						{
-							RecvFunction(acceptedSocket[i], i, dataBuffer);
-						}
-						else
-						{
-							RecvFunction(acceptedSocket[i], i, dataBuffer);
-						}
+						RecvFunction(acceptedSocket[i], i, dataBuffer);
 					}
 				}
 			}
 		}
+
     } while (true);
+	
 
 	closesocket(listenSocket);
 	for (int i = 0; i < lastIndex; i++)
