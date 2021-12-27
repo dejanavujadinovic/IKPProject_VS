@@ -2,6 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #define no_init_all
+#define HAVE_STRUCT_TIMESPEC
 
 #include <windows.h>
 #include <winsock2.h>
@@ -16,10 +17,11 @@
 
 #define SERVER_PORT 27016
 #define BUFFER_SIZE 512
-#define MAX_CLIENTS 3
+#define MAX_CLIENTS 5
 
 typedef struct lista_igraca
 {
+	SOCKET acceptedSocket;
 	char username[20];
 	int id;
 	struct lista_igraca* sledeci;
@@ -32,15 +34,15 @@ IGRACI* poslednji = NULL;
 //funkcije
 void RecvFunction(SOCKET accSocket, int i, char dataBuffer[]);
 void SendFunction(SOCKET accSocket, char dataBuffer[]);
-void DodajIgraca(char username[], int id);
+void DodajIgraca(char username[], int id, SOCKET acceptedSocket);
 void ispisiListu();
-
+//DWORD WINAPI accSock(LPVOID accsoc);
 
 // TCP server that use blocking sockets
 int main() 
 {
     // Socket used for listening for new clients 
-    SOCKET listenSocket = INVALID_SOCKET;
+	SOCKET listenSocket = INVALID_SOCKET;
 
     // Socket used for communication with client
     SOCKET acceptedSocket[MAX_CLIENTS];
@@ -118,12 +120,13 @@ int main()
 	int idPocetnog = -1;
 	int lastIndex = 0;
 	bool novaKonekcija = false;
-
+	bool sviRegistrovani = false;
+	
     do
     {
 		FD_ZERO(&readfds);
 
-		if(lastIndex!=MAX_CLIENTS)
+		if(lastIndex!=MAX_CLIENTS && sviRegistrovani==false)
 			FD_SET(listenSocket, &readfds);
 
 		for(int i=0; i<lastIndex; i++)
@@ -160,22 +163,20 @@ int main()
 					printf("accept failed with error: %d\n", WSAGetLastError());
 					closesocket(listenSocket);
 					WSACleanup();
-					return 1;
 				}
-
+				unsigned long mode = 1;
 				if (ioctlsocket(acceptedSocket[lastIndex], FIONBIO, &mode) != 0)
 				{
 					printf("ioctlsocket failed with error.");
-					continue;
 				}
-				lastIndex++;
-
-				novaKonekcija = true;
 
 				memset(dataBuffer, 0, BUFFER_SIZE);
-				sprintf_s(dataBuffer, "Unesite vas username (dozvoljena su samo mala slova): ");
-				SendFunction(acceptedSocket[lastIndex - 1], dataBuffer);
-			}
+				sprintf_s(dataBuffer, "Unesite username (malim slovima): ");
+				SendFunction(acceptedSocket[lastIndex], dataBuffer);
+
+				novaKonekcija = true;
+				lastIndex++;
+			}	
 			for (int i = 0; i < lastIndex; i++)
 			{
 				if (FD_ISSET(acceptedSocket[i], &readfds))
@@ -190,21 +191,24 @@ int main()
 							printf("Pocetni igrac: %d", idPocetnog + 1);
 						}
 
-						DodajIgraca(dataBuffer, i);
+						DodajIgraca(dataBuffer, i, acceptedSocket[i]);
 						ispisiListu();
-
-						if (i == idPocetnog)
-						{
-							//printf("ovdjeee saam");
-							RecvFunction(acceptedSocket[i], i, dataBuffer);
-						}
+						
 						novaKonekcija = false;
 					}
 					else
 					{
+						sviRegistrovani = true;
 						if (i == idPocetnog)
 						{
 							RecvFunction(acceptedSocket[i], i, dataBuffer);
+							for (int j = 0; j < lastIndex; j++)
+							{
+								if (j != idPocetnog)
+								{
+									SendFunction(acceptedSocket[j], dataBuffer);
+								}
+							}
 						}
 						else
 						{
@@ -280,15 +284,15 @@ void SendFunction(SOCKET accSocket, char dataBuffer[])
 		//return 1;
 	}
 }
-void DodajIgraca(char username[], int id)
+void DodajIgraca(char username[], int id, SOCKET acceptedSocket)
 {
 	IGRACI *pomocni = (IGRACI*)malloc(sizeof(IGRACI));
 	strcpy_s(pomocni->username, username);
 	pomocni->id = id;
-
+	pomocni->acceptedSocket = acceptedSocket;
+	
 	if (prvi != NULL)
 	{
-		//printf("%d %s", pomocni->id, pomocni->username);
 		poslednji->sledeci = pomocni;
 		poslednji = pomocni;
 		poslednji->sledeci = NULL;
@@ -296,7 +300,6 @@ void DodajIgraca(char username[], int id)
 	}
 	else
 	{
-		//printf("%d %s", pomocni->id, pomocni->username);
 		prvi = pomocni;
 		poslednji = pomocni;
 		prvi->sledeci = NULL;
@@ -324,3 +327,31 @@ void ispisiListu()
 	}
 	printf("\n");
 }
+//DWORD WINAPI accSock(LPVOID accsoc)
+//{
+//	SOCKET as;
+//	SOCKET ls;
+//	as = (SOCKET)&accsoc;
+//	ls = (SOCKET)&listenSocket;
+//	// Struct for information about connected client
+//	sockaddr_in clientAddr;
+//
+//	int clientAddrSize = sizeof(struct sockaddr_in);
+//
+//	// Accept new connections from clients 
+//	as = accept(ls, (struct sockaddr*)&clientAddr, &clientAddrSize);
+//
+//	// Check if accepted socket is valid 
+//	if (as == INVALID_SOCKET)
+//	{
+//		printf("accept failed with error: %d\n", WSAGetLastError());
+//		closesocket(ls);
+//		WSACleanup();
+//	}
+//	unsigned long mode = 1;
+//	if (ioctlsocket(as, FIONBIO, &mode) != 0)
+//	{
+//		printf("ioctlsocket failed with error.");
+//	}
+//	return 0;
+//}

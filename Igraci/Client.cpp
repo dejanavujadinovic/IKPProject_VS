@@ -80,8 +80,8 @@ int main()
 		gets_s(dataBuffer, BUFFER_SIZE);
 		SendFunction(connectSocket, dataBuffer);
 
-		//memset(dataBuffer, 0, BUFFER_SIZE);
-		//RecvFunction(connectSocket);
+		memset(dataBuffer, 0, BUFFER_SIZE);
+		RecvFunction(connectSocket);
 	
 	} while (true);
 

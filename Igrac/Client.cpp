@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "conio.h"
+#include <time.h>
 
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
@@ -74,12 +75,16 @@ int main()
 	memset(dataBuffer, 0, BUFFER_SIZE);
 	RecvFunction(connectSocket);
 
+	memset(dataBuffer, 0, BUFFER_SIZE);
 	gets_s(dataBuffer, BUFFER_SIZE);
 	strcat_s(dataBuffer, "AD");
 	SendFunction(connectSocket, dataBuffer);
 
 	int broj;
-	printf("Unesite broj za pocetak igre: ");
+	//srand(time(NULL));
+	//broj = rand() % (100 - 11 + 1) + 11;
+	//printf("random number:%d", broj);
+	printf("Unesite broj: ");
 	scanf_s("%d", &broj);
 
 	int minInterval = broj - 10;
@@ -87,14 +92,15 @@ int main()
 
 	memset(dataBuffer, 0, BUFFER_SIZE);
 	sprintf_s(dataBuffer, "Interval: [%d - %d]", minInterval, maxInterval);
-	SendFunction(connectSocket, dataBuffer);
+	//SendFunction(connectSocket, dataBuffer);
 	
 	do
 	{
+		SendFunction(connectSocket, dataBuffer);
 		memset(dataBuffer, 0, BUFFER_SIZE);
 		// Read string from user into outgoing buffer
 		gets_s(dataBuffer, BUFFER_SIZE);
-		//SendFunction(connectSocket, dataBuffer);
+		
 
 		//memset(dataBuffer, 0, BUFFER_SIZE);
 		//RecvFunction(connectSocket);
