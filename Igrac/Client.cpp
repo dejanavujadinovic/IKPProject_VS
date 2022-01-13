@@ -21,7 +21,6 @@
 #define SERVER_PORT 27016
 #define BUFFER_SIZE 256
 
-
 int brojZaPogadjanje;
 
 int prosek(int donja, int gornja) {

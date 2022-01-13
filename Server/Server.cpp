@@ -31,7 +31,6 @@ HANDLE hSemafori[MAX_CLIENTS];
 HANDLE hGlavniSemafor;
 CRITICAL_SECTION cs;
 
-
 CVOR* noviCvor(int* vrednost, int* ID, int* c)
 {
 	if (*c == 0)												
