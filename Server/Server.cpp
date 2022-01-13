@@ -24,6 +24,7 @@
 
 CVOR* prvi = NULL;
 
+
 INTERVAL interval;
 int trenutnoIgraca;
 bool kraj;
